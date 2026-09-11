@@ -320,6 +320,141 @@ def eliminar_estudio(id):
         "id": id
     }
 #ESTUDIOS FIN
+@app.route("/api/hojas-vida/<int:id>/experiencias", methods=["GET"])
+def listar_experiencias(id):
+    conec = conectar_bd()
+    cursor = conec.cursor()
+
+    sql = "SELECT * FROM EXPERIENCIAS WHERE hoja_vida_id = %s"
+
+    cursor.execute(sql, (id,))
+    datos = cursor.fetchall()
+
+    columnas = [columna[0] for columna in cursor.description]
+    resultado = []
+
+    for lista in datos:
+        experiencia = dict(zip(columnas, lista))
+        resultado.append(experiencia)
+
+    cursor.close()
+    conec.close()
+
+    return {
+        "experiencias": resultado
+    }
+
+@app.route("/api/hojas-vida/<int:id>/experiencias", methods=["POST"])
+def registrar_experiencia(id):
+    conec = conectar_bd()
+    cursor = conec.cursor()
+
+    datos = request.json
+
+    sql = """INSERT INTO EXPERIENCIAS
+    (hoja_vida_id, empresa, cargo, tiempo, funciones)
+    VALUES(%s, %s, %s, %s, %s)"""
+
+    valores = (
+        id,
+        datos["empresa"],
+        datos["cargo"],
+        datos["tiempo"],
+        datos["funciones"]
+    )
+
+    cursor.execute(sql, valores)
+    conec.commit()
+
+    id_generado = cursor.lastrowid
+
+    cursor.close()
+    conec.close()
+
+    return {
+        "mensaje": "Experiencia registrada correctamente",
+        "id": id_generado
+    }, 201
+
+@app.route("/api/experiencias/<int:id>", methods=["GET"])
+def obtener_experiencia(id):
+    conec = conectar_bd()
+    cursor = conec.cursor()
+
+    sql = "SELECT * FROM EXPERIENCIAS WHERE id = %s"
+
+    cursor.execute(sql, (id,))
+    datos = cursor.fetchone()
+
+    if not datos:
+        cursor.close()
+        conec.close()
+
+        return {
+            "mensaje": "La experiencia no existe"
+        }, 404
+
+    columnas = [columna[0] for columna in cursor.description]
+    experiencia = dict(zip(columnas, datos))
+
+    cursor.close()
+    conec.close()
+
+    return experiencia
+
+@app.route("/api/experiencias/<int:id>", methods=["PUT"])
+def actualizar_experiencia(id):
+    conec = conectar_bd()
+    cursor = conec.cursor()
+
+    datos = request.json
+
+    sql = """UPDATE EXPERIENCIAS
+    SET empresa = %s,
+        cargo = %s,
+        tiempo = %s,
+        funciones = %s
+    WHERE id = %s"""
+
+    valores = (
+        datos["empresa"],
+        datos["cargo"],
+        datos["tiempo"],
+        datos["funciones"],
+        id
+    )
+
+    cursor.execute(sql, valores)
+    conec.commit()
+
+    cursor.close()
+    conec.close()
+
+    return {
+        "mensaje": "Experiencia actualizada correctamente",
+        "id": id
+    }
+
+@app.route("/api/experiencias/<int:id>", methods=["DELETE"])
+def eliminar_experiencia(id):
+    conec = conectar_bd()
+    cursor = conec.cursor()
+
+    sql = "DELETE FROM EXPERIENCIAS WHERE id = %s"
+
+    cursor.execute(sql, (id,))
+    conec.commit()
+
+    cursor.close()
+    conec.close()
+
+    return {
+        "mensaje": "Experiencia eliminada correctamente",
+        "id": id
+    }
+#EXOERIENCIAS FIN
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
