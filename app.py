@@ -553,6 +553,222 @@ def eliminar_habilidad(id):
     }
 #HABILIDADES FIN
 
+@app.route("/api/hojas-vida/<int:id>/cursos", methods=["GET"])
+def listar_cursos(id):
+    conec = conectar_bd()
+    cursor = conec.cursor()
+
+    sql = "SELECT * FROM CURSOS WHERE hoja_vida_id = %s"
+
+    cursor.execute(sql, (id,))
+    datos = cursor.fetchall()
+
+    columnas = [columna[0] for columna in cursor.description]
+    resultado = []
+
+    for lista in datos:
+        curso = dict(zip(columnas, lista))
+        resultado.append(curso)
+
+    cursor.close()
+    conec.close()
+
+    return {
+        "cursos": resultado
+    }
+
+@app.route("/api/hojas-vida/<int:id>/cursos", methods=["POST"])
+def registrar_curso(id):
+    conec = conectar_bd()
+    cursor = conec.cursor()
+
+    datos = request.json
+
+    sql = """INSERT INTO CURSOS
+    (hoja_vida_id, nombre)
+    VALUES(%s, %s)"""
+
+    valores = (
+        id,
+        datos["nombre"]
+    )
+
+    cursor.execute(sql, valores)
+    conec.commit()
+
+    id_generado = cursor.lastrowid
+
+    cursor.close()
+    conec.close()
+
+    return {
+        "mensaje": "Curso registrado correctamente",
+        "id": id_generado
+    }, 201
+
+@app.route("/api/cursos/<int:id>", methods=["GET"])
+def obtener_curso(id):
+    conec = conectar_bd()
+    cursor = conec.cursor()
+
+    sql = "SELECT * FROM CURSOS WHERE id = %s"
+
+    cursor.execute(sql, (id,))
+    datos = cursor.fetchone()
+
+    if not datos:
+        cursor.close()
+        conec.close()
+
+        return {
+            "mensaje": "El curso no existe"
+        }, 404
+
+    columnas = [columna[0] for columna in cursor.description]
+    curso = dict(zip(columnas, datos))
+
+    cursor.close()
+    conec.close()
+
+    return curso
+
+@app.route("/api/cursos/<int:id>", methods=["PUT"])
+def actualizar_curso(id):
+    conec = conectar_bd()
+    cursor = conec.cursor()
+
+    datos = request.json
+
+    sql = """UPDATE CURSOS
+    SET nombre = %s
+    WHERE id = %s"""
+
+    valores = (
+        datos["nombre"],
+        id
+    )
+
+    cursor.execute(sql, valores)
+    conec.commit()
+
+    cursor.close()
+    conec.close()
+
+    return {
+        "mensaje": "Curso actualizado correctamente",
+        "id": id
+    }
+
+@app.route("/api/cursos/<int:id>", methods=["DELETE"])
+def eliminar_curso(id):
+    conec = conectar_bd()
+    cursor = conec.cursor()
+
+    sql = "DELETE FROM CURSOS WHERE id = %s"
+
+    cursor.execute(sql, (id,))
+    conec.commit()
+
+    cursor.close()
+    conec.close()
+
+    return {
+        "mensaje": "Curso eliminado correctamente",
+        "id": id
+    }
+#CURSOS FIN
+@app.route("/api/hojas-vida/<int:id>/completa", methods=["GET"])
+def hoja_vida_completa(id):
+
+    conec = conectar_bd()
+    cursor = conec.cursor()
+
+    sql = "SELECT * FROM HOJAS_VIDA WHERE id = %s"
+
+    cursor.execute(sql, (id,))
+    datos = cursor.fetchone()
+
+    if not datos:
+        cursor.close()
+        conec.close()
+
+        return {
+            "mensaje": "La hoja de vida no existe"
+        }, 404
+
+    columnas = [columna[0] for columna in cursor.description]
+    hoja_vida = dict(zip(columnas, datos))
+
+    sql = "SELECT * FROM ESTUDIOS WHERE hoja_vida_id = %s"
+
+    cursor.execute(sql, (id,))
+    datos_estudios = cursor.fetchall()
+
+    columnas = [columna[0] for columna in cursor.description]
+    estudios = []
+
+    for lista in datos_estudios:
+        estudio = dict(zip(columnas, lista))
+        estudios.append(estudio)
+
+    sql = "SELECT * FROM CURSOS WHERE hoja_vida_id = %s"
+
+    cursor.execute(sql, (id,))
+    datos_cursos = cursor.fetchall()
+
+    columnas = [columna[0] for columna in cursor.description]
+    cursos = []
+
+    for lista in datos_cursos:
+        curso = dict(zip(columnas, lista))
+        cursos.append(curso)
+
+    sql = "SELECT * FROM EXPERIENCIAS WHERE hoja_vida_id = %s"
+
+    cursor.execute(sql, (id,))
+    datos_experiencias = cursor.fetchall()
+
+    columnas = [columna[0] for columna in cursor.description]
+    experiencias = []
+
+    for lista in datos_experiencias:
+
+        experiencia = dict(zip(columnas, lista))
+
+        experiencia_id = experiencia["id"]
+
+        sql = "SELECT * FROM HABILIDADES WHERE experiencia_id = %s"
+
+        cursor.execute(sql, (experiencia_id,))
+
+        datos_habilidades = cursor.fetchall()
+
+        columnas_habilidades = [
+            columna[0] for columna in cursor.description
+        ]
+
+        habilidades = []
+
+        for habilidad_lista in datos_habilidades:
+
+            habilidad = dict(
+                zip(columnas_habilidades, habilidad_lista)
+            )
+
+            habilidades.append(habilidad)
+
+        experiencia["habilidades"] = habilidades
+
+        experiencias.append(experiencia)
+
+    hoja_vida["estudios"] = estudios
+    hoja_vida["cursos"] = cursos
+    hoja_vida["experiencias"] = experiencias
+
+    cursor.close()
+    conec.close()
+    return hoja_vida
+
 
 if __name__ == "__main__":
     app.run(debug=True)
